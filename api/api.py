@@ -9,46 +9,53 @@ from flask import Flask, jsonify
 app = Flask("Status_check_API")
 
 
-def check_db():
-    """ Function to request status of MySQL database.
-        Gets response by connecting as a user to DB container.
+class ConnStatus(object):
+    """ Class for creating connection object. Class methods check
+        connectivity for each component accordingly.
     """
-    try:
+    def __init__(self):
+        self.database = False
+        self.cache = False
+        self.messaging = False
 
-        connection = mysql.connector.connect(host='mysql',
-                                             port='3306',
-                                             user='root',
-                                             password='password')
-        if connection.is_connected():
-            return True
-    except Error:
-        return False
+    def check_db(self):
+        """ Function to request status of MySQL database.
+            Gets response by connecting as a user to DB container.
+        """
+        try:
 
+            connection = mysql.connector.connect(host='mysql', port='3306',
+                                                 user='root', password='password')
+            if connection.is_connected():
+                self.database = True
+        except Error:
+            print("connection check failed")
+        return self.database
 
-def check_redis():
-    """ Function to request status of Redis Server.
-        Works by pinging the server through the redis python module.
-    """
-    try:
-        r = redis.Redis(host='redis',
-                        port=6379)
+    def check_cache(self):
+        """ Function to request status of Redis Server.
+            Works by pinging the server through the redis python module.
+        """
+        try:
+            r = redis.Redis(host='redis', port=6379)
 
-        if r.ping():
-            return True
-    except redis.ConnectionError:
-        return False
+            if r.ping():
+                self.cache = True
+        except redis.ConnectionError:
+            print("Connection check failed")
+        return self.cache
 
+    def check_messaging(self):
+        """ Function to request the status of Kafka Cluster.
+        """
+        try:
+            client = KafkaClient("kafka:9092")
 
-def check_kafka():
-    """ Function to request the status of Kafka Cluster.
-    """
-    try:
-        client = KafkaClient("kafka:9092")
-
-        if client:
-            return True
-    except KafkaException:
-        return False
+            if client:
+                self.messaging = True
+        except KafkaException:
+            print("Connection check failed")
+        return self.messaging
 
 
 @app.route("/status", methods=['GET'])
@@ -56,13 +63,11 @@ def check_status():
     """ Basic API operation, checks statuses from services running
         on containers within the same network.
     """
-    resp_db = check_db()
-    resp_redis = check_redis()
-    resp_kafka = check_kafka()
+    conn = ConnStatus()
     # Response in JSON format
-    status = {'Database': '%s' % resp_db,
-              'Cache': '%s' % resp_redis,
-              'Messaging': '%s' % resp_kafka}
+    status = {'Database': '%s' % conn.check_db(),
+              'Cache': '%s' % conn.check_cache(),
+              'Messaging': '%s' % conn.check_messaging()}
 
     resp = jsonify(status)
     resp.status_code = 200
