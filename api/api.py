@@ -3,7 +3,7 @@ import redis
 from pykafka import KafkaClient
 from pykafka.exceptions import KafkaException
 from mysql.connector import Error
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify
 
 
 app = Flask("Status_check_API")
@@ -14,14 +14,14 @@ def check_db():
         Gets response by connecting as a user to DB container.
     """
     try:
-        
+
         connection = mysql.connector.connect(host='mysql',
-                                         port='3306',
-                                         user='root',
-                                         password='password')
+                                             port='3306',
+                                             user='root',
+                                             password='password')
         if connection.is_connected():
             return True
-    except Error as e:
+    except Error:
         return False
 
 
@@ -44,24 +44,26 @@ def check_kafka():
     """
     try:
         client = KafkaClient("kafka:9092")
-    
+
         if client:
             return True
     except KafkaException:
         return False
 
 
-@app.route("/status", methods = ['GET'])
+@app.route("/status", methods=['GET'])
 def check_status():
-    """ Basic API operation, checks statuses from services running 
+    """ Basic API operation, checks statuses from services running
         on containers within the same network.
     """
     resp_db = check_db()
     resp_redis = check_redis()
     resp_kafka = check_kafka()
     # Response in JSON format
-    status = {'Database':'%s' % resp_db, 'Cache':'%s' % resp_redis, 'Messaging':'%s' % resp_kafka}
-    
+    status = {'Database': '%s' % resp_db,
+              'Cache': '%s' % resp_redis,
+              'Messaging': '%s' % resp_kafka}
+
     resp = jsonify(status)
     resp.status_code = 200
 
