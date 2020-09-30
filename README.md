@@ -23,6 +23,8 @@ All the API related files are located in */api* folder.
 
 All containers exist in the same private network, with only one entry point to the external network, which is the web application.
 
+Layers *A* and *C* persist data in their respective volumes.
+
 To query the API, make an HTTP GET request to the following URL:
 
 > http://localhost:8000/status
