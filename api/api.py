@@ -28,6 +28,7 @@ class ConnStatus(object):
                                                  user='root', password='password')
             if connection.is_connected():
                 self.database = True
+            connection.close()
         except Error:
             print("connection check failed")
         return self.database
